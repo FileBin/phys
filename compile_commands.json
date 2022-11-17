@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/filebin/GitRepo/phys/build/Debug",
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -x c-header -o CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -c /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.c",
+  "file": "/home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.c"
+},
+{
+  "directory": "/home/filebin/GitRepo/phys/build/Debug",
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/main.c.o -c /home/filebin/GitRepo/phys/src/main.c",
+  "file": "/home/filebin/GitRepo/phys/src/main.c"
+}
+]
