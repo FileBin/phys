@@ -50,6 +50,11 @@
     "body": ["typedef struct ${1:name} {", "", "} ${1:name};"],
     "description": "Header template"
   },
+  "loop": {
+    "prefix": "loop",
+    "body": ["for(size_t i = 0; i < ${1:n}; ++i) {", "    ", "}"],
+    "description": "Header template"
+  },
 
   "source-template": {
     "prefix": "cpp",

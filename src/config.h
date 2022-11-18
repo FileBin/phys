@@ -7,6 +7,21 @@
 #ifndef SRC_CONFIG_H_
 #define SRC_CONFIG_H_
 
-typedef double decimal;
+#ifndef NDEBUG
+#define TRACE
+#endif
+
+#define LATEX_DOC_TEMPL                                                                                                \
+    "\\documentclass{article}\n"                                                                                       \
+    "\\usepackage{circuitikz}\n"                                                                                       \
+    "\\begin{document}\n"                                                                                              \
+    "%s"                                                                                                               \
+    "\\end{document}\n"
+
+#define LATEX_CIRCUIT_TEMPL                                                                                            \
+    "\\begin{circuitikz} \\draw\n"                                                                                     \
+    "%s"                                                                                                               \
+    ";\n"                                                                                                              \
+    "\\end{circuitikz}\n"
 
 #endif

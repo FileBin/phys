@@ -1,9 +1,14 @@
-#include "BranchScheme.h"
+#include "branch_scheme.h"
 
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 int main() {
+    char buffer[0x1000];
+    char doc[0x10000];
+    doc[0] = 0;
+    buffer[0] = 0;
     BranchScheme scheme;
     ZERO_TYPE(&scheme, BranchScheme);
     puts("Input number of branches in scheme:");
@@ -23,8 +28,19 @@ int main() {
     size_t triangle_branches[3];
     ZERO_ARR(triangle_branches, size_t, 3);
 
+    schemeToGraph(&scheme, buffer, 10);
+    strcat(doc, buffer);
+
     puts("Input branches to convert to trinagle:");
-    scanf("%d %d %d", &triangle_branches[0], &triangle_branches[1], &triangle_branches[2]);
+    scanf("%d %d %d", (int *)&triangle_branches[0], (int *)&triangle_branches[1], (int *)&triangle_branches[2]);
+
     transformTriangleToStar(&scheme, triangle_branches);
+
+    schemeToGraph(&scheme, buffer, 10);
+    strcat(doc, buffer);
+
+    puts("\nLatex doc:");
+    printf(LATEX_DOC_TEMPL, doc);
+
     return 0;
 }

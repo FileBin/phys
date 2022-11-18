@@ -12,6 +12,8 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_precompile_headers(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/pch.h")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+target_link_libraries(${PROJECT_NAME} m)
+
 # add_subdirectory(res)
 # add_dependencies(${PROJECT_NAME} Resources)
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
