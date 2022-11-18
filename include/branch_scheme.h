@@ -28,8 +28,8 @@ typedef struct Point {
 } Point;
 
 typedef struct Branch {
-    size_t start_node;
-    size_t end_node;
+    unum start_node;
+    unum end_node;
     decimal voltage;
     decimal resistance;
     decimal ampertage;
@@ -37,19 +37,18 @@ typedef struct Branch {
 
 typedef struct BranchScheme {
     Branch *branches;
-    size_t branches_count;
+    unum branches_count;
 } BranchScheme;
 
-size_t schemeNextNodeIndex(BranchScheme *scheme);
+unum schemeNextNodeIndex(BranchScheme *scheme);
 
-void findSchemeBranchesByNode(BranchScheme *scheme, size_t node_id, Branch ***p_branches_arr, size_t *founded_count);
+void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_arr, unum *founded_count);
 
-void findSchemeBranchesIdsByNode(BranchScheme *scheme, size_t node_id, size_t **p_branches_ids_arr,
-                                 size_t *founded_count);
+void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr, unum *founded_count);
 
-size_t countNodes(BranchScheme *scheme, size_t **pnodes_map);
+unum countNodes(BranchScheme *scheme, unum **pnodes_map);
 
-void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]);
+void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3]);
 
 void schemeToGraph(BranchScheme *scheme, char *str, decimal scale);
 

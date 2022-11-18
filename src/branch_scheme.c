@@ -2,9 +2,9 @@
 #include <branch_scheme.h>
 #include <stdio.h>
 
-size_t schemeNextNodeIndex(BranchScheme *scheme) {
-    size_t index = 0;
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+unum schemeNextNodeIndex(BranchScheme *scheme) {
+    unum index = 0;
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         index = MAX(index, b->start_node);
         index = MAX(index, b->end_node);
@@ -12,17 +12,17 @@ size_t schemeNextNodeIndex(BranchScheme *scheme) {
     return index + 1;
 }
 
-void findSchemeBranchesByNode(BranchScheme *scheme, size_t node_id, Branch ***p_branches_arr, size_t *founded_count) {
-    size_t count = 0;
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_arr, unum *founded_count) {
+    unum count = 0;
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         if (b->start_node == node_id || b->end_node == node_id) {
             count++;
         }
     }
     (*p_branches_arr) = ALLOC_ARR(Branch *, count);
-    size_t index = 0;
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+    unum index = 0;
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         if (b->start_node == node_id || b->end_node == node_id) {
             (*p_branches_arr)[index++] = b;
@@ -33,18 +33,17 @@ void findSchemeBranchesByNode(BranchScheme *scheme, size_t node_id, Branch ***p_
     }
 }
 
-void findSchemeBranchesIdsByNode(BranchScheme *scheme, size_t node_id, size_t **p_branches_ids_arr,
-                                 size_t *founded_count) {
-    size_t count = 0;
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr, unum *founded_count) {
+    unum count = 0;
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         if (b->start_node == node_id || b->end_node == node_id) {
             count++;
         }
     }
-    (*p_branches_ids_arr) = ALLOC_ARR(size_t, count);
-    size_t index = 0;
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+    (*p_branches_ids_arr) = ALLOC_ARR(unum, count);
+    unum index = 0;
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         if (b->start_node == node_id || b->end_node == node_id) {
             (*p_branches_ids_arr)[index++] = i;
@@ -55,13 +54,13 @@ void findSchemeBranchesIdsByNode(BranchScheme *scheme, size_t node_id, size_t **
     }
 }
 
-size_t countNodes(BranchScheme *scheme, size_t **pnodes_map) {
-    size_t nbranches = scheme->branches_count;
-    size_t *nodes_map = ALLOC_ARR(size_t, nbranches);
-    size_t nnodes = 0;
-    for (size_t i = 0; i < nbranches; ++i) {
-        size_t j;
-        size_t node = scheme->branches[i].start_node;
+unum countNodes(BranchScheme *scheme, unum **pnodes_map) {
+    unum nbranches = scheme->branches_count;
+    unum *nodes_map = ALLOC_ARR(unum, nbranches);
+    unum nnodes = 0;
+    for (unum i = 0; i < nbranches; ++i) {
+        unum j;
+        unum node = scheme->branches[i].start_node;
         for (j = 0; j < nnodes; ++j) {
             if (nodes_map[j] == node) {
                 break;
@@ -86,7 +85,7 @@ size_t countNodes(BranchScheme *scheme, size_t **pnodes_map) {
     return nnodes;
 }
 
-void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) {
+void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3]) {
     Branch *triangle[3];
     // star to triangle mapping:
     // star index 0 is between triangle 0 and 1,
@@ -98,14 +97,14 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
     decimal sum_resistance = 0;
 
     // calculate sum resistance and transform voltage to ampertage
-    for (size_t i = 0; i < 3; i++) {
+    for (unum i = 0; i < 3; i++) {
         triangle[i] = &scheme->branches[triangle_branches[i]];
         triangle_ampertages[i] = triangle[i]->ampertage + triangle[i]->voltage / triangle[i]->resistance;
         sum_resistance += triangle[i]->resistance;
     }
 
     // calculate triangle nodes
-    size_t triangle_nodes[3];
+    unum triangle_nodes[3];
 
     triangle_nodes[0] = triangle[0]->start_node;
     triangle_nodes[1] = triangle[1]->start_node;
@@ -119,8 +118,8 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
 
     decimal star_voltages[3];
 
-    for (size_t i = 0; i < 3; i++) {
-        size_t j = (i + 1) % 3;
+    for (unum i = 0; i < 3; i++) {
+        unum j = (i + 1) % 3;
         Branch *a = triangle[i];
         Branch *b = triangle[j];
         star_resistances[i] = a->resistance * b->resistance / sum_resistance;
@@ -128,15 +127,15 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
     }
 
     Branch *insert_branches[3];
-    for (size_t i = 0; i < 3; i++) {
+    for (unum i = 0; i < 3; i++) {
         Branch **other_branches;
-        size_t other_branches_count;
+        unum other_branches_count;
         findSchemeBranchesByNode(scheme, triangle_nodes[i], &other_branches, &other_branches_count);
         if (other_branches_count == 3) {
             Branch *b = 0;
-            for (size_t i = 0; i < 3; i++) {
+            for (unum i = 0; i < 3; i++) {
                 char unique = 1;
-                for (size_t j = 0; j < 3; j++) {
+                for (unum j = 0; j < 3; j++) {
                     if (other_branches[i] == triangle[j]) {
                         unique = 0;
                         break;
@@ -154,12 +153,12 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
         free(other_branches);
     }
 
-    size_t new_node_id = schemeNextNodeIndex(scheme);
+    unum new_node_id = schemeNextNodeIndex(scheme);
     char added_size = 0;
-    for (size_t i = 0; i < 3; i++) {
+    for (unum i = 0; i < 3; i++) {
         Branch *ibranch = insert_branches[i];
         if (ibranch) {
-            size_t *node_id = &ibranch->start_node;
+            unum *node_id = &ibranch->start_node;
             if ((*node_id) != triangle_nodes[i]) {
                 node_id = &ibranch->end_node;
             }
@@ -179,15 +178,15 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
         }
     }
 
-    size_t new_branches_count = scheme->branches_count + added_size - 3;
+    unum new_branches_count = scheme->branches_count + added_size - 3;
 
     Branch *new_arr = ALLOC_ARR(Branch, new_branches_count);
     // insert 3 ranges
     Branch *src = scheme->branches;
     Branch *dst = new_arr;
 
-    size_t range = triangle_branches[0];
-    size_t start = 0;
+    unum range = triangle_branches[0];
+    unum start = 0;
 
     if (range)
         memcpy(dst, src + start, range * sizeof(Branch));
@@ -213,7 +212,7 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
         memcpy(dst, src + start, range * sizeof(Branch));
 
     dst += range;
-    for (size_t i = 0; i < 3; i++) {
+    for (unum i = 0; i < 3; i++) {
         Branch *ibranch = insert_branches[i];
         if (ibranch) {
             memcpy(dst++, ibranch, sizeof(Branch));
@@ -227,42 +226,42 @@ void transformTriangleToStar(BranchScheme *scheme, size_t triangle_branches[3]) 
     free(old_arr);
 }
 
-void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr_size) {
-    size_t nbranches = scheme->branches_count;
+void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_size) {
+    unum nbranches = scheme->branches_count;
 
     decimal *direct_weights = ALLOC_ARR(decimal, nbranches);
     decimal *indirect_weights = ALLOC_ARR(decimal, nbranches);
 
-    for (size_t i = 0; i < nbranches; ++i) {
+    for (unum i = 0; i < nbranches; ++i) {
         direct_weights[i] = nbranches;
         indirect_weights[i] = nbranches;
     }
 
-    size_t start_node = scheme->branches[0].start_node;
+    unum start_node = scheme->branches[0].start_node;
 
     decimal *in_weights = ALLOC_ARR(decimal, nbranches);
     decimal *next_weights = ALLOC_ARR(decimal, nbranches);
-    size_t *nodes_to_visit = ALLOC_ARR(size_t, nbranches);
-    size_t *next_visit = ALLOC_ARR(size_t, nbranches);
-    size_t nvisit = 1;
+    unum *nodes_to_visit = ALLOC_ARR(unum, nbranches);
+    unum *next_visit = ALLOC_ARR(unum, nbranches);
+    unum nvisit = 1;
 
     nodes_to_visit[0] = start_node;
     in_weights[0] = 0;
 
-    size_t next_nvisit = 0;
+    unum next_nvisit = 0;
     while (nvisit > 0) {
         // loop trough next visit nodes and caclulate weight
-        for (size_t i = 0; i < nvisit; ++i) {
+        for (unum i = 0; i < nvisit; ++i) {
             decimal prev_weight = in_weights[i];
-            size_t node = nodes_to_visit[i];
-            size_t *branches;
-            size_t branches_count;
+            unum node = nodes_to_visit[i];
+            unum *branches;
+            unum branches_count;
             findSchemeBranchesIdsByNode(scheme, node, &branches, &branches_count);
 
-            for (size_t i = 0; i < branches_count; ++i) {
+            for (unum i = 0; i < branches_count; ++i) {
                 decimal w = prev_weight + ((decimal)1) / ((decimal)branches_count);
-                size_t next = scheme->branches[branches[i]].start_node;
-                size_t branch_id = branches[i];
+                unum next = scheme->branches[branches[i]].start_node;
+                unum branch_id = branches[i];
 
                 decimal *weights = indirect_weights;
                 if (next == node) {
@@ -273,7 +272,7 @@ void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr
                 if (weights[branch_id] > w) {
                     weights[branch_id] = w;
                     if (next != start_node) {
-                        size_t idx = next_nvisit++;
+                        unum idx = next_nvisit++;
                         next_weights[idx] = w;
                         next_visit[idx] = next;
                     }
@@ -303,27 +302,27 @@ void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr
 #ifdef TRACE
     puts("weights:");
     puts("ID\tdirect   \tindirect");
-    for (size_t i = 0; i < nbranches; ++i) {
+    for (unum i = 0; i < nbranches; ++i) {
         printf("%d\t%f\t%f\n", (int)i, (float)direct_weights[i], (float)indirect_weights[i]);
     }
 #endif
 
-    size_t *branches_id_buffer = ALLOC_ARR(size_t, nbranches);
+    unum *branches_id_buffer = ALLOC_ARR(unum, nbranches);
     void *src = branches_id_buffer;
 
-    size_t node = start_node;
-    size_t prev_branch = nbranches;
+    unum node = start_node;
+    unum prev_branch = nbranches;
 
-    size_t pos = 0;
+    unum pos = 0;
     while (1) {
-        size_t *branches;
-        size_t bcount;
+        unum *branches;
+        unum bcount;
         findSchemeBranchesIdsByNode(scheme, node, &branches, &bcount);
-        size_t biggest_id = 0;
+        unum biggest_id = 0;
         Branch *biggest = 0;
         decimal maxw = 0;
-        for (size_t i = 0; i < bcount; ++i) {
-            size_t branch_id = branches[i];
+        for (unum i = 0; i < bcount; ++i) {
+            unum branch_id = branches[i];
             if (branch_id == prev_branch)
                 continue;
             Branch *branch = scheme->branches + branch_id;
@@ -343,7 +342,7 @@ void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr
         printf("%d\n", (int)biggest_id);
 #endif
         byte end_loop = 0;
-        for (size_t i = 0; i < pos; ++i) {
+        for (unum i = 0; i < pos; ++i) {
             if (branches_id_buffer[i] == biggest_id) {
                 src = branches_id_buffer + i;
                 nbranches = pos - i;
@@ -357,7 +356,7 @@ void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr
         branches_id_buffer[pos++] = biggest_id;
         prev_branch = biggest_id;
 
-        size_t next = biggest->start_node;
+        unum next = biggest->start_node;
         if (next == node) {
             next = biggest->end_node;
         }
@@ -367,14 +366,14 @@ void findBiggestLoop(BranchScheme *scheme, size_t **branches_id_arr, size_t *arr
     SAFE_FREE(direct_weights);
     SAFE_FREE(indirect_weights);
 
-    (*branches_id_arr) = ALLOC_ARR(size_t, nbranches);
-    memcpy(*branches_id_arr, src, nbranches * sizeof(size_t));
+    (*branches_id_arr) = ALLOC_ARR(unum, nbranches);
+    memcpy(*branches_id_arr, src, nbranches * sizeof(unum));
     SAFE_FREE(branches_id_buffer);
 
     SAFE_ASSIGN(arr_size, nbranches);
 }
 
-void getNodesLocationInScheme(BranchScheme *scheme, Point **points_arr, size_t *points_size) {}
+void getNodesLocationInScheme(BranchScheme *scheme, Point **points_arr, unum *points_size) {}
 
 void insertBranch(Branch *branch, Point a, Point b, char *dst) {
     char buf[0x80];
@@ -440,13 +439,13 @@ void insertBranch(Branch *branch, Point a, Point b, char *dst) {
 }
 
 void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
-    size_t nbranches = scheme->branches_count;
+    unum nbranches = scheme->branches_count;
 
-    size_t *nodes_map;
-    size_t nnodes = countNodes(scheme, &nodes_map);
+    unum *nodes_map;
+    unum nnodes = countNodes(scheme, &nodes_map);
 
-    size_t inv_map[0x1000];
-    for (size_t i = 0; i < nnodes; ++i) {
+    unum inv_map[0x1000];
+    for (unum i = 0; i < nnodes; ++i) {
         inv_map[nodes_map[i]] = i;
     }
 
@@ -455,15 +454,15 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
     Point *node_positions = ALLOC_ARR(Point, nnodes);
     ZERO_ARR(node_positions, Point, nnodes);
 
-    size_t *branches_loop;
-    size_t loop_size;
+    unum *branches_loop;
+    unum loop_size;
     findBiggestLoop(scheme, &branches_loop, &loop_size);
 
-    size_t start_node = scheme->branches[branches_loop[0]].start_node;
-    size_t node = start_node;
+    unum start_node = scheme->branches[branches_loop[0]].start_node;
+    unum node = start_node;
     decimal theta = 2. * 3.14159 / (decimal)loop_size;
     decimal phi = theta * .5;
-    for (size_t i = 0; i < loop_size; ++i) {
+    for (unum i = 0; i < loop_size; ++i) {
         Point p;
         p.x = cos(phi);
         p.y = sin(phi);
@@ -486,7 +485,7 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
 
         node_positions[inv_map[node]] = p;
         calculated_nodes[inv_map[node]] = 1;
-        size_t next = scheme->branches[branches_loop[i]].start_node;
+        unum next = scheme->branches[branches_loop[i]].start_node;
         if (next == node) {
             next = scheme->branches[branches_loop[i]].end_node;
         }
@@ -498,18 +497,18 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
         phi += theta;
     }
 
-    for (size_t i = 0; i < nnodes; ++i) {
+    for (unum i = 0; i < nnodes; ++i) {
         if (calculated_nodes[i])
             continue;
         Point *point = node_positions + i;
 
         Branch **branches;
-        size_t branches_count;
+        unum branches_count;
         findSchemeBranchesByNode(scheme, nodes_map[i], &branches, &branches_count);
-        for (size_t j = 0; j < branches_count; ++j) {
-            size_t start_id = branches[j]->start_node;
-            size_t end_id = branches[j]->end_node;
-            long long other_id = -1;
+        for (unum j = 0; j < branches_count; ++j) {
+            unum start_id = branches[j]->start_node;
+            unum end_id = branches[j]->end_node;
+            num other_id = -1;
             if (start_id == nodes_map[i]) {
                 other_id = end_id;
             } else if (end_id == nodes_map[i]) {
@@ -537,7 +536,7 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
     char buffer[0x1000];
     buffer[0] = 0;
 
-    for (size_t i = 0; i < nbranches; ++i) {
+    for (unum i = 0; i < nbranches; ++i) {
         Branch *branch = scheme->branches + i;
         Point a = node_positions[inv_map[branch->start_node]];
         Point b = node_positions[inv_map[branch->end_node]];
@@ -552,7 +551,7 @@ void graphToString(BranchScheme *scheme, char *str) {
     char buffer[0x1000];
     memset(buffer, 0, 0x1000);
 
-    for (size_t i = 0; i < scheme->branches_count; i++) {
+    for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
         char buf[0x40];
         sprintf(buf, "%d: %d -> %d\n", (int)i, (int)b->start_node, (int)b->end_node);

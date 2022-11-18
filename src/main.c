@@ -16,7 +16,7 @@ int main() {
     scheme.branches = ALLOC_ARR(Branch, scheme.branches_count);
     ZERO_ARR(scheme.branches, Branch, scheme.branches_count);
     puts("NOTE: Branch input format (start, end, R, E, J)");
-    for (size_t i = 0; i < scheme.branches_count; i++) {
+    for (unum i = 0; i < scheme.branches_count; i++) {
         Branch *b = scheme.branches + i;
         float R, E, J;
         // printf("Input branch %d:\n", (int)i);
@@ -25,8 +25,8 @@ int main() {
         b->voltage = E;
         b->ampertage = J;
     }
-    size_t triangle_branches[3];
-    ZERO_ARR(triangle_branches, size_t, 3);
+    unum triangle_branches[3];
+    ZERO_ARR(triangle_branches, unum, 3);
 
     schemeToGraph(&scheme, buffer, 10);
     strcat(doc, buffer);
