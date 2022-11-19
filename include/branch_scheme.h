@@ -57,6 +57,7 @@ unum countNodes(BranchScheme *scheme, unum **pnodes_map);
 void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], char *doc);
 
 void schemeToLatex(BranchScheme *scheme, char *doc, decimal scale);
+void schemeValuesToLatex(BranchScheme *scheme, char *doc);
 
 void simplifyScheme(BranchScheme *scheme, char *doc);
 

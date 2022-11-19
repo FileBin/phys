@@ -2,6 +2,7 @@
 #include "defines.h"
 #include <assert.h>
 #include <branch_scheme.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -391,9 +392,53 @@ void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_siz
 
 void getNodesLocationInScheme(BranchScheme *scheme, Point **points_arr, unum *points_size) {}
 
-void branchToLatex(Branch *branch, Point a, Point b, decimal offset, char *dst) {
+void resistorToLatex(char *buf, Point a, Point b, int id) {
+    sprintf(buf, "(%f,%f) to[%s, l=$R_%d$] (%f,%f)\n", (float)a.x, (float)a.y, "american resistor", id, (float)b.x,
+            (float)b.y);
+}
+
+void voltageSourceToLatex(char *buf, Point a, Point b, int id) {
+    sprintf(buf, "(%f,%f) to[%s, l=$E_%d$] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", id,
+            (float)a.x, (float)a.y);
+}
+
+void ampertageSourceToLatex(char *buf, Point a, Point b, int id) {
+    sprintf(buf, "(%f,%f) to[%s, l=$I_%d$] (%f,%f)\n", (float)a.x, (float)a.y, "american current source", id,
+            (float)b.x, (float)b.y);
+}
+
+void branchValuesToLatex(Branch *branch, int id, char *dst) {
+    char buf[0x80];
+    byte volt = fabs(branch->voltage) > EPSILON;
+    byte amp = fabs(branch->ampertage) > EPSILON;
+    byte res = fabs(branch->resistance) > EPSILON;
+    if (res) {
+        sprintf(buf, "$R_%d=%.0f$\n\n", id, branch->resistance);
+        strcat(dst, buf);
+    }
+    if (volt) {
+        sprintf(buf, "$E_%d=%.0f$\n\n", id, branch->voltage);
+        strcat(dst, buf);
+    }
+    if (amp) {
+        sprintf(buf, "$I_%d=%.0f$\n\n", id, branch->ampertage);
+        strcat(dst, buf);
+    }
+}
+
+void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, char *dst) {
     char buf[0x80];
     memset(buf, 0, 0x80);
+
+    byte reversed = 0;
+
+    if (a.y < b.y) {
+        Point t = a;
+        a = b;
+        b = t;
+        reversed = 1;
+    }
+
     Point l = b;
     l.x -= a.x;
     l.y -= a.y;
@@ -409,32 +454,41 @@ void branchToLatex(Branch *branch, Point a, Point b, decimal offset, char *dst) 
 
     if (fabs(offset) > EPSILON) {
         sprintf(buf, "(%f,%f) to ", (float)a.x, (float)a.y);
-        a.x += l.x * 0.15 + norm.x * offset * 0.05;
-        a.y += l.y * 0.15 + norm.y * offset * 0.05;
-        b.x += -l.x * 0.15 + norm.x * offset * 0.05;
-        b.y += -l.y * 0.15 + norm.y * offset * 0.05;
+        strcat(dst, buf);
+        a.x += l.x * 0.15 + norm.x * offset * 0.15;
+        a.y += l.y * 0.15 + norm.y * offset * 0.15;
+        b.x += -l.x * 0.15 + norm.x * offset * 0.15;
+        b.y += -l.y * 0.15 + norm.y * offset * 0.15;
+        buf[0] = 0;
         sprintf(buf, "(%f,%f)\n", (float)a.x, (float)a.y);
+        strcat(dst, buf);
+        buf[0] = 0;
     }
 
     if (volt && res) {
         Point mid = a;
         mid.x += l.x * .5;
         mid.y += l.y * .5;
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)a.x, (float)a.y, "american resistor", (float)mid.x,
-                (float)mid.y);
+        resistorToLatex(buf, a, mid, id);
         strcat(dst, buf);
         buf[0] = 0;
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", (float)mid.x,
-                (float)mid.y);
+        if (reversed) {
+            voltageSourceToLatex(buf, b, mid, id);
+        } else {
+            voltageSourceToLatex(buf, mid, b, id);
+        }
         strcat(dst, buf);
         buf[0] = 0;
     } else if (volt) {
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", (float)a.x,
-                (float)a.y);
+        if (reversed) {
+            voltageSourceToLatex(buf, b, a, id);
+        } else {
+            voltageSourceToLatex(buf, a, b, id);
+        }
         strcat(dst, buf);
         buf[0] = 0;
     } else if (res) {
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)a.x, (float)a.y, "american resistor", (float)b.x, (float)b.y);
+        resistorToLatex(buf, a, b, id);
         strcat(dst, buf);
         buf[0] = 0;
     }
@@ -452,21 +506,29 @@ void branchToLatex(Branch *branch, Point a, Point b, decimal offset, char *dst) 
             sprintf(buf, "(%f,%f) to\n", (float)a.x, (float)a.y);
             strcat(dst, buf);
             buf[0] = 0;
-            sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)c.x, (float)c.y, "american current source", (float)d.x,
-                    (float)d.y);
+            if (reversed) {
+                ampertageSourceToLatex(buf, d, c, id);
+            } else {
+                ampertageSourceToLatex(buf, c, d, id);
+            }
             strcat(dst, buf);
             buf[0] = 0;
             sprintf(buf, "to (%f,%f)\n", (float)b.x, (float)b.y);
             strcat(dst, buf);
             buf[0] = 0;
         } else {
-            sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)a.x, (float)a.y, "american current source", (float)b.x,
-                    (float)b.y);
+            if (reversed) {
+                ampertageSourceToLatex(buf, b, a, id);
+            } else {
+                ampertageSourceToLatex(buf, a, b, id);
+            }
         }
     }
 
     if (fabs(offset) > EPSILON) {
         sprintf(buf, "(%f,%f) to (%f,%f)\n", (float)b.x, (float)b.y, (float)prev_b.x, (float)prev_b.y);
+        strcat(dst, buf);
+        buf[0] = 0;
     }
 }
 
@@ -500,7 +562,7 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
 
     unum start_node = scheme->branches[branches_loop[0]].start_node;
     unum node = start_node;
-    decimal theta = 2. * 3.14159 / (decimal)loop_size;
+    decimal theta = 2 * M_PI / (decimal)loop_size;
     decimal phi = theta * .5;
     unum i = 1;
     while (1) {
@@ -602,7 +664,7 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
         decimal offset = 0;
         if (branch_map[j + k * nnodes] > 0) {
             char c = branch_map[j + k * nnodes];
-            if (c % 2) {
+            if ((c % 2) == 0) {
                 c = -c + 1;
             }
             offset = c;
@@ -613,11 +675,17 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
         Point a = node_positions[j];
         Point b = node_positions[k];
 
-        branchToLatex(branch, a, b, offset, buffer);
+        branchToLatex(branch, i + 1, a, b, offset, buffer);
     }
     free(branch_map);
 
     sprintf(str, LATEX_CIRCUIT_TEMPL, buffer);
+}
+
+void schemeValuesToLatex(BranchScheme *scheme, char *doc) {
+    for (size_t i = 0; i < scheme->branches_count; ++i) {
+        branchValuesToLatex(scheme->branches + i, i + 1, doc);
+    }
 }
 
 void branchConvertAmpertageToVotage(Branch *branch) {

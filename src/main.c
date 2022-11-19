@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define SCALE 8
+
 int main() {
     char buffer[0x1000];
     char doc[0x10000];
@@ -28,24 +30,36 @@ int main() {
     unum triangle_branches[3];
     ZERO_ARR(triangle_branches, unum, 3);
 
-    buffer[0] = 0;
-    schemeToLatex(&scheme, buffer, 10);
+    schemeValuesToLatex(&scheme, buffer);
     strcat(doc, buffer);
+    buffer[0] = 0;
+
+    schemeToLatex(&scheme, buffer, SCALE);
+    strcat(doc, buffer);
+    buffer[0] = 0;
 
     puts("Input branches to convert to trinagle:");
     scanf("%d %d %d", (int *)&triangle_branches[0], (int *)&triangle_branches[1], (int *)&triangle_branches[2]);
 
     transformTriangleToStar(&scheme, triangle_branches, buffer);
 
-    buffer[0] = 0;
-    schemeToLatex(&scheme, buffer, 10);
+    schemeValuesToLatex(&scheme, buffer);
     strcat(doc, buffer);
+    buffer[0] = 0;
+
+    schemeToLatex(&scheme, buffer, SCALE);
+    strcat(doc, buffer);
+    buffer[0] = 0;
 
     simplifyScheme(&scheme, buffer);
 
-    buffer[0] = 0;
-    schemeToLatex(&scheme, buffer, 10);
+    schemeValuesToLatex(&scheme, buffer);
     strcat(doc, buffer);
+    buffer[0] = 0;
+
+    schemeToLatex(&scheme, buffer, SCALE);
+    strcat(doc, buffer);
+    buffer[0] = 0;
 
     puts("\nLatex doc:");
     printf(LATEX_DOC_TEMPL, doc);
