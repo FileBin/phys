@@ -9,7 +9,7 @@
 
 typedef double decimal;
 typedef unsigned char byte;
-typedef long long num;
-typedef unsigned long long unum;
+typedef signed short num;
+typedef unsigned short unum;
 
 #endif

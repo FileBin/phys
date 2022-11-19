@@ -1,6 +1,22 @@
 
+#include "defines.h"
+#include <assert.h>
 #include <branch_scheme.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void graphToString(BranchScheme *scheme, char *str) {
+    str[0] = 0;
+
+    for (unum i = 0; i < scheme->branches_count; i++) {
+        Branch *b = scheme->branches + i;
+        char buf[0x40];
+        sprintf(buf, "%d: %d -> %d\n", (int)i, (int)b->start_node, (int)b->end_node);
+        strcat(str, buf);
+    }
+}
 
 unum schemeNextNodeIndex(BranchScheme *scheme) {
     unum index = 0;
@@ -56,7 +72,7 @@ void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_br
 
 unum countNodes(BranchScheme *scheme, unum **pnodes_map) {
     unum nbranches = scheme->branches_count;
-    unum *nodes_map = ALLOC_ARR(unum, nbranches);
+    unum *nodes_map = ALLOC_ARR(unum, nbranches * 2);
     unum nnodes = 0;
     for (unum i = 0; i < nbranches; ++i) {
         unum j;
@@ -85,7 +101,7 @@ unum countNodes(BranchScheme *scheme, unum **pnodes_map) {
     return nnodes;
 }
 
-void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3]) {
+void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], char *doc) {
     Branch *triangle[3];
     // star to triangle mapping:
     // star index 0 is between triangle 0 and 1,
@@ -163,7 +179,7 @@ void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3]) {
                 node_id = &ibranch->end_node;
             }
             (*node_id) = new_node_id;
-
+            // FIXME: detect direction before merge
             ibranch->voltage += star_voltages[i];
             ibranch->resistance += star_resistances[i];
             insert_branches[i] = 0;
@@ -320,7 +336,7 @@ void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_siz
         findSchemeBranchesIdsByNode(scheme, node, &branches, &bcount);
         unum biggest_id = 0;
         Branch *biggest = 0;
-        decimal maxw = 0;
+        decimal maxw = -1;
         for (unum i = 0; i < bcount; ++i) {
             unum branch_id = branches[i];
             if (branch_id == prev_branch)
@@ -375,7 +391,7 @@ void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_siz
 
 void getNodesLocationInScheme(BranchScheme *scheme, Point **points_arr, unum *points_size) {}
 
-void insertBranch(Branch *branch, Point a, Point b, char *dst) {
+void branchToLatex(Branch *branch, Point a, Point b, decimal offset, char *dst) {
     char buf[0x80];
     memset(buf, 0, 0x80);
     Point l = b;
@@ -385,24 +401,36 @@ void insertBranch(Branch *branch, Point a, Point b, char *dst) {
     Point norm;
     norm.x = l.y;
     norm.y = -l.x;
-    byte volt = fabs(branch->voltage) > 0.00000001;
-    byte amp = fabs(branch->ampertage) > 0.00000001;
-    byte res = fabs(branch->resistance) > 0.00000001;
+    byte volt = fabs(branch->voltage) > EPSILON;
+    byte amp = fabs(branch->ampertage) > EPSILON;
+    byte res = fabs(branch->resistance) > EPSILON;
+
+    Point prev_b = b;
+
+    if (fabs(offset) > EPSILON) {
+        sprintf(buf, "(%f,%f) to ", (float)a.x, (float)a.y);
+        a.x += l.x * 0.15 + norm.x * offset * 0.05;
+        a.y += l.y * 0.15 + norm.y * offset * 0.05;
+        b.x += -l.x * 0.15 + norm.x * offset * 0.05;
+        b.y += -l.y * 0.15 + norm.y * offset * 0.05;
+        sprintf(buf, "(%f,%f)\n", (float)a.x, (float)a.y);
+    }
 
     if (volt && res) {
         Point mid = a;
         mid.x += l.x * .5;
         mid.y += l.y * .5;
-        sprintf(buf, "(%f,%f) to[%s]\n", (float)a.x, (float)a.y, "american resistor");
+        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)a.x, (float)a.y, "american resistor", (float)mid.x,
+                (float)mid.y);
         strcat(dst, buf);
         buf[0] = 0;
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)mid.x, (float)mid.y, "american voltage source", (float)b.x,
-                (float)b.y);
+        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", (float)mid.x,
+                (float)mid.y);
         strcat(dst, buf);
         buf[0] = 0;
     } else if (volt) {
-        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)a.x, (float)a.y, "american voltage source", (float)b.x,
-                (float)b.y);
+        sprintf(buf, "(%f,%f) to[%s] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", (float)a.x,
+                (float)a.y);
         strcat(dst, buf);
         buf[0] = 0;
     } else if (res) {
@@ -436,15 +464,19 @@ void insertBranch(Branch *branch, Point a, Point b, char *dst) {
                     (float)b.y);
         }
     }
+
+    if (fabs(offset) > EPSILON) {
+        sprintf(buf, "(%f,%f) to (%f,%f)\n", (float)b.x, (float)b.y, (float)prev_b.x, (float)prev_b.y);
+    }
 }
 
-void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
+void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
     unum nbranches = scheme->branches_count;
 
     unum *nodes_map;
     unum nnodes = countNodes(scheme, &nodes_map);
 
-    unum inv_map[0x1000];
+    unum inv_map[MAX_GRAPH_NODES];
     for (unum i = 0; i < nnodes; ++i) {
         inv_map[nodes_map[i]] = i;
     }
@@ -458,11 +490,20 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
     unum loop_size;
     findBiggestLoop(scheme, &branches_loop, &loop_size);
 
+#ifdef TRACE
+    puts("Biggest loop:");
+    for (unum i = 0; i < loop_size; ++i) {
+        printf("%d -> ", (int)branches_loop[i]);
+    }
+    printf("%d\n", (int)branches_loop[0]);
+#endif
+
     unum start_node = scheme->branches[branches_loop[0]].start_node;
     unum node = start_node;
     decimal theta = 2. * 3.14159 / (decimal)loop_size;
     decimal phi = theta * .5;
-    for (unum i = 0; i < loop_size; ++i) {
+    unum i = 1;
+    while (1) {
         Point p;
         p.x = cos(phi);
         p.y = sin(phi);
@@ -495,40 +536,54 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
         node = next;
 
         phi += theta;
-    }
-
-    for (unum i = 0; i < nnodes; ++i) {
-        if (calculated_nodes[i])
-            continue;
-        Point *point = node_positions + i;
-
-        Branch **branches;
-        unum branches_count;
-        findSchemeBranchesByNode(scheme, nodes_map[i], &branches, &branches_count);
-        for (unum j = 0; j < branches_count; ++j) {
-            unum start_id = branches[j]->start_node;
-            unum end_id = branches[j]->end_node;
-            num other_id = -1;
-            if (start_id == nodes_map[i]) {
-                other_id = end_id;
-            } else if (end_id == nodes_map[i]) {
-                other_id = start_id;
-            }
-            assert(other_id != -1);
-
-            other_id = inv_map[other_id];
-
-            Point other = node_positions[other_id];
-
-            point->x += other.x / branches_count;
-            point->y += other.y / branches_count;
+        i++;
+        if (i >= loop_size) {
+            i -= loop_size;
         }
+    }
+    for (size_t i = 0; i < 0x10; ++i) {
+        byte calculated_all = 1;
+        for (unum i = 0; i < nnodes; ++i) {
+            if (calculated_nodes[i])
+                continue;
+            Point *point = node_positions + i;
+            point->x = 0;
+            point->y = 0;
+            calculated_nodes[i] = 1;
+            Branch **branches;
+            unum branches_count;
+            findSchemeBranchesByNode(scheme, nodes_map[i], &branches, &branches_count);
+            for (unum j = 0; j < branches_count; ++j) {
+                unum start_id = branches[j]->start_node;
+                unum end_id = branches[j]->end_node;
+                num other_id = -1;
+                if (start_id == nodes_map[i]) {
+                    other_id = end_id;
+                } else if (end_id == nodes_map[i]) {
+                    other_id = start_id;
+                }
+                assert(other_id != -1);
+
+                other_id = inv_map[other_id];
+
+                Point other = node_positions[other_id];
+                if (!calculated_nodes[other_id]) {
+                    calculated_all = 0;
+                    calculated_nodes[i] = 0;
+                }
+
+                point->x += other.x / branches_count;
+                point->y += other.y / branches_count;
+            }
 
 #ifdef TRACE
-        printf("node %d: (%f, %f)\n", (int)i, (float)point->x, (float)point->y);
+            printf("node %d: (%f, %f)\n", (int)nodes_map[i], (float)point->x, (float)point->y);
 #endif
 
-        free(branches);
+            free(branches);
+        }
+        if (calculated_all)
+            break;
     }
 
     free(nodes_map);
@@ -536,27 +591,137 @@ void schemeToGraph(BranchScheme *scheme, char *str, decimal scale) {
     char buffer[0x1000];
     buffer[0] = 0;
 
+    byte *branch_map = ALLOC_ARR(byte, nnodes * nnodes);
+    ZERO_ARR(branch_map, byte, nnodes * nnodes);
+
     for (unum i = 0; i < nbranches; ++i) {
         Branch *branch = scheme->branches + i;
-        Point a = node_positions[inv_map[branch->start_node]];
-        Point b = node_positions[inv_map[branch->end_node]];
 
-        insertBranch(branch, a, b, buffer);
+        unum j = inv_map[branch->start_node];
+        unum k = inv_map[branch->end_node];
+        decimal offset = 0;
+        if (branch_map[j + k * nnodes] > 0) {
+            char c = branch_map[j + k * nnodes];
+            if (c % 2) {
+                c = -c + 1;
+            }
+            offset = c;
+        }
+
+        branch_map[k + j * nnodes] = ++branch_map[j + k * nnodes];
+
+        Point a = node_positions[j];
+        Point b = node_positions[k];
+
+        branchToLatex(branch, a, b, offset, buffer);
     }
+    free(branch_map);
 
     sprintf(str, LATEX_CIRCUIT_TEMPL, buffer);
 }
 
-void graphToString(BranchScheme *scheme, char *str) {
-    char buffer[0x1000];
-    memset(buffer, 0, 0x1000);
+void branchConvertAmpertageToVotage(Branch *branch) {
+    branch->voltage += branch->ampertage * branch->resistance;
+    branch->ampertage = 0;
+}
 
-    for (unum i = 0; i < scheme->branches_count; i++) {
-        Branch *b = scheme->branches + i;
-        char buf[0x40];
-        sprintf(buf, "%d: %d -> %d\n", (int)i, (int)b->start_node, (int)b->end_node);
-        strcat(buffer, buf);
+void mergeBranches(Branch *merge_to, Branch *merge_from) {
+    byte opposite = 0xff;
+    unum merge_node;
+    if (merge_to->end_node == merge_from->end_node) {
+        opposite = 1;
+        merge_node = merge_to->end_node;
+        merge_to->end_node = merge_from->start_node;
+    } else if (merge_to->start_node == merge_from->start_node) {
+        opposite = 1;
+        merge_node = merge_to->start_node;
+        merge_to->start_node = merge_from->end_node;
+    } else if (merge_to->start_node == merge_from->end_node) {
+        opposite = 0;
+        merge_node = merge_to->start_node;
+        merge_to->start_node = merge_from->start_node;
+    } else if (merge_to->end_node == merge_from->start_node) {
+        opposite = 0;
+        merge_node = merge_to->end_node;
+        merge_to->end_node = merge_from->end_node;
     }
 
-    strcpy(str, buffer);
+    assert(opposite != 0xff);
+
+    merge_to->resistance += merge_from->resistance;
+    merge_to->voltage += (opposite ? -1 : 1) * merge_from->voltage;
+}
+
+void simplifyScheme(BranchScheme *scheme, char *doc) {
+#ifdef TRACE
+    {
+        puts("simplifying scheme:");
+        puts("before:");
+        char buf[0x800];
+        buf[0] = 0;
+        graphToString(scheme, buf);
+        puts(buf);
+    }
+#endif
+    unum nbranches = scheme->branches_count;
+    Branch **branch_buf = ALLOC_ARR(Branch *, nbranches);
+    ZERO_ARR(branch_buf, Branch *, nbranches);
+
+    for (size_t i = 0; i < nbranches; ++i) {
+        Branch *branch = scheme->branches + i;
+        branchConvertAmpertageToVotage(branch);
+        branch_buf[i] = branch;
+    }
+
+    unum *nodes_map;
+    unum nnodes = countNodes(scheme, &nodes_map);
+    unum new_count = nbranches;
+    for (size_t i = 0; i < nnodes; ++i) {
+        unum real_node = nodes_map[i];
+        unum *branch_ids;
+        unum nfounded;
+        findSchemeBranchesIdsByNode(scheme, real_node, &branch_ids, &nfounded);
+
+        if (nfounded == 2) {
+            Branch *merge_to = scheme->branches + branch_ids[0];
+            Branch *merge_from = scheme->branches + branch_ids[1];
+
+            mergeBranches(merge_to, merge_from);
+
+            Branch **target2 = branch_buf + branch_ids[1];
+
+            if (*target2) {
+                new_count--;
+                (*target2) = 0;
+            }
+        }
+
+        free(branch_ids);
+    }
+    Branch *new_array = ALLOC_ARR(Branch, new_count);
+    size_t pos = 0;
+    for (size_t i = 0; i < nbranches; ++i) {
+        Branch *b = branch_buf[i];
+        if (!b)
+            continue;
+
+        memcpy(new_array + pos, b, sizeof(Branch));
+        pos++;
+    }
+
+    free(scheme->branches);
+    scheme->branches = new_array;
+    scheme->branches_count = new_count;
+
+    free(nodes_map);
+    free(branch_buf);
+#ifdef TRACE
+    {
+        puts("after:");
+        char buf[0x800];
+        buf[0] = 0;
+        graphToString(scheme, buf);
+        puts(buf);
+    }
+#endif
 }

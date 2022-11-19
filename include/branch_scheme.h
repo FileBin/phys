@@ -36,21 +36,31 @@ typedef struct Branch {
 } Branch;
 
 typedef struct BranchScheme {
+    struct BranchScheme *parent;
     Branch *branches;
     unum branches_count;
 } BranchScheme;
 
+typedef struct CalculatedScheme {
+    decimal *branch_currencies;
+    unum branches_count;
+} CalculatedScheme;
+
 unum schemeNextNodeIndex(BranchScheme *scheme);
 
-void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_arr, unum *founded_count);
+void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_ref_arr, unum *founded_count);
 
 void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr, unum *founded_count);
 
 unum countNodes(BranchScheme *scheme, unum **pnodes_map);
 
-void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3]);
+void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], char *doc);
 
-void schemeToGraph(BranchScheme *scheme, char *str, decimal scale);
+void schemeToLatex(BranchScheme *scheme, char *doc, decimal scale);
+
+void simplifyScheme(BranchScheme *scheme, char *doc);
+
+void branchConvertAmpertageToVotage(Branch *branch);
 
 #ifdef __cplusplus
 }

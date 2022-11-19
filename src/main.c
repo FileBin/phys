@@ -28,15 +28,23 @@ int main() {
     unum triangle_branches[3];
     ZERO_ARR(triangle_branches, unum, 3);
 
-    schemeToGraph(&scheme, buffer, 10);
+    buffer[0] = 0;
+    schemeToLatex(&scheme, buffer, 10);
     strcat(doc, buffer);
 
     puts("Input branches to convert to trinagle:");
     scanf("%d %d %d", (int *)&triangle_branches[0], (int *)&triangle_branches[1], (int *)&triangle_branches[2]);
 
-    transformTriangleToStar(&scheme, triangle_branches);
+    transformTriangleToStar(&scheme, triangle_branches, buffer);
 
-    schemeToGraph(&scheme, buffer, 10);
+    buffer[0] = 0;
+    schemeToLatex(&scheme, buffer, 10);
+    strcat(doc, buffer);
+
+    simplifyScheme(&scheme, buffer);
+
+    buffer[0] = 0;
+    schemeToLatex(&scheme, buffer, 10);
     strcat(doc, buffer);
 
     puts("\nLatex doc:");
