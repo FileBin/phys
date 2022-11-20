@@ -13,10 +13,15 @@
 
 #define MAX_GRAPH_NODES 0xffff
 #define EPSILON 0.0000000001
+#define SCALE 8
+
+#define LATEX_RESISTOR "american resistor"
+#define LATEX_CURRENT_SRC "american current source"
+#define LATEX_VOLTAGE_SRC "american voltage source"
 
 #define LATEX_DOC_TEMPL                                                                                                \
-    "\\documentclass{article}\n"                                                                                       \
-    "\\usepackage{circuitikz}\n"                                                                                       \
+    "\\documentclass[12pt]{article}\n"                                                                                 \
+    "\\usepackage{tex/circuitikz}\n"                                                                                   \
     "\\begin{document}\n"                                                                                              \
     "%s"                                                                                                               \
     "\\end{document}\n\n"

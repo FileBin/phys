@@ -28,6 +28,7 @@ typedef struct Point {
 } Point;
 
 typedef struct Branch {
+    char name[0x10];
     unum start_node;
     unum end_node;
     decimal voltage;
@@ -43,25 +44,26 @@ typedef struct BranchScheme {
 
 typedef struct CalculatedScheme {
     decimal *branch_currencies;
-    unum branches_count;
+    BranchScheme *scheme;
 } CalculatedScheme;
 
 unum schemeNextNodeIndex(BranchScheme *scheme);
-
-void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_ref_arr, unum *founded_count);
-
-void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr, unum *founded_count);
-
-unum countNodes(BranchScheme *scheme, unum **pnodes_map);
-
+void findSchemeBranchesByNode(const BranchScheme *scheme, unum node_id, Branch ***p_branches_ref_arr,
+                              unum *founded_count);
+void findSchemeBranchesIdsByNode(const BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr,
+                                 unum *founded_count);
+unum countNodes(const BranchScheme *scheme, unum **pnodes_map);
 void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], char *doc);
-
-void schemeToLatex(BranchScheme *scheme, char *doc, decimal scale);
-void schemeValuesToLatex(BranchScheme *scheme, char *doc);
-
+void schemeToLatex(const BranchScheme *scheme, char *doc, decimal scale, unum *branches_loop, unum nbranches_loop);
+void schemeValuesToLatex(const BranchScheme *scheme, char *doc);
 void simplifyScheme(BranchScheme *scheme, char *doc);
+unum findBiggestLoop(const BranchScheme *scheme, unum *loop_id_buffer);
 
 void branchConvertAmpertageToVotage(Branch *branch);
+void mergeBranches(Branch *merge_to, const Branch *merge_from);
+unum hashBranch(const Branch *branch);
+
+CalculatedScheme *calculateSchemeCurencies(const BranchScheme *scheme);
 
 #ifdef __cplusplus
 }

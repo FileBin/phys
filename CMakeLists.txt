@@ -14,6 +14,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(${PROJECT_NAME} m)
 
+add_subdirectory(res)
+
+add_dependencies(${PROJECT_NAME} ${PHYS_RESOURCES_NAME})
+
 # add_subdirectory(res)
 # add_dependencies(${PROJECT_NAME} Resources)
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

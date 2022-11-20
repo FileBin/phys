@@ -29,7 +29,7 @@ unum schemeNextNodeIndex(BranchScheme *scheme) {
     return index + 1;
 }
 
-void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_branches_arr, unum *founded_count) {
+void findSchemeBranchesByNode(const BranchScheme *scheme, unum node_id, Branch ***p_branches_arr, unum *founded_count) {
     unum count = 0;
     for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
@@ -50,7 +50,8 @@ void findSchemeBranchesByNode(BranchScheme *scheme, unum node_id, Branch ***p_br
     }
 }
 
-void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr, unum *founded_count) {
+void findSchemeBranchesIdsByNode(const BranchScheme *scheme, unum node_id, unum **p_branches_ids_arr,
+                                 unum *founded_count) {
     unum count = 0;
     for (unum i = 0; i < scheme->branches_count; i++) {
         Branch *b = scheme->branches + i;
@@ -71,7 +72,7 @@ void findSchemeBranchesIdsByNode(BranchScheme *scheme, unum node_id, unum **p_br
     }
 }
 
-unum countNodes(BranchScheme *scheme, unum **pnodes_map) {
+unum countNodes(const BranchScheme *scheme, unum **pnodes_map) {
     unum nbranches = scheme->branches_count;
     unum *nodes_map = ALLOC_ARR(unum, nbranches * 2);
     unum nnodes = 0;
@@ -123,14 +124,21 @@ void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], ch
     // calculate triangle nodes
     unum triangle_nodes[3];
 
-    triangle_nodes[0] = triangle[0]->start_node;
-    triangle_nodes[1] = triangle[1]->start_node;
+    triangle_nodes[0] = triangle[0]->end_node;
+    triangle_nodes[1] = triangle[1]->end_node;
+    triangle_nodes[2] = triangle[2]->end_node;
+
+    // if 1st triangle branch is inversed
     if (triangle_nodes[1] == triangle_nodes[0]) {
-        triangle_nodes[1] = triangle[1]->end_node;
+        // inverse 1st triangle branch values
+        triangle_nodes[1] = triangle[1]->start_node;
+        triangle_ampertages[1] *= -1;
     }
-    triangle_nodes[2] = triangle[2]->start_node;
+    // if 2nd triangle branch is inversed
     if (triangle_nodes[2] == triangle_nodes[1] || triangle_nodes[2] == triangle_nodes[0]) {
-        triangle_nodes[2] = triangle[2]->end_node;
+        // inverse 2nd triangle branch values
+        triangle_nodes[2] = triangle[2]->start_node;
+        triangle_ampertages[2] *= -1;
     }
 
     decimal star_voltages[3];
@@ -140,7 +148,7 @@ void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], ch
         Branch *a = triangle[i];
         Branch *b = triangle[j];
         star_resistances[i] = a->resistance * b->resistance / sum_resistance;
-        star_voltages[i] = (triangle_ampertages[i] + triangle_ampertages[j]) * star_resistances[i];
+        star_voltages[i] = (triangle_ampertages[j] - triangle_ampertages[i]) * star_resistances[i];
     }
 
     Branch *insert_branches[3];
@@ -172,27 +180,54 @@ void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], ch
 
     unum new_node_id = schemeNextNodeIndex(scheme);
     char added_size = 0;
+    Branch star_branches[3];
     for (unum i = 0; i < 3; i++) {
-        Branch *ibranch = insert_branches[i];
-        if (ibranch) {
-            unum *node_id = &ibranch->start_node;
-            if ((*node_id) != triangle_nodes[i]) {
-                node_id = &ibranch->end_node;
-            }
-            (*node_id) = new_node_id;
-            // FIXME: detect direction before merge
-            ibranch->voltage += star_voltages[i];
-            ibranch->resistance += star_resistances[i];
+        Branch *star_branch = star_branches + i;
+        sprintf(star_branch->name, "%s-%s", triangle[i]->name, triangle[(i + 1) % 3]->name);
+        star_branch->start_node = triangle_nodes[i];
+        star_branch->end_node = new_node_id;
+        star_branch->ampertage = 0;
+        star_branch->voltage = star_voltages[i];
+        star_branch->resistance = star_resistances[i];
+
+        if (insert_branches[i]) {
+            branchConvertAmpertageToVotage(insert_branches[i]);
+            mergeBranches(insert_branches[i], star_branch);
             insert_branches[i] = 0;
         } else {
-            ibranch = insert_branches[i] = ALLOC(Branch);
-            ibranch->start_node = triangle_nodes[i];
-            ibranch->end_node = new_node_id;
-            ibranch->ampertage = 0;
-            ibranch->voltage = star_voltages[i];
-            ibranch->resistance = star_resistances[i];
+            insert_branches[i] = ALLOC(Branch);
+            memcpy(insert_branches[i], star_branch, sizeof(Branch));
             added_size++;
         }
+    }
+
+    if (doc) {
+        BranchScheme star;
+        star.parent = 0;
+        star.branches = ALLOC_ARR(Branch, 6);
+        star.branches_count = 6;
+
+        memcpy(star.branches, star_branches, 3 * sizeof(Branch));
+        memcpy(star.branches + 3, triangle[0], sizeof(Branch));
+        memcpy(star.branches + 4, triangle[1], sizeof(Branch));
+        memcpy(star.branches + 5, triangle[2], sizeof(Branch));
+
+        star.branches[3].ampertage = star.branches[4].ampertage = star.branches[5].ampertage = 0;
+
+        doc[0] = 0;
+        unum loop[3];
+        loop[0] = 3;
+        loop[1] = 4;
+        loop[2] = 5;
+        char buffer[0x1000];
+
+        buffer[0] = 0;
+        schemeValuesToLatex(&star, buffer);
+        strcat(doc, buffer);
+
+        buffer[0] = 0;
+        schemeToLatex(&star, buffer, SCALE, loop, 3);
+        strcat(doc, buffer);
     }
 
     unum new_branches_count = scheme->branches_count + added_size - 3;
@@ -243,7 +278,7 @@ void transformTriangleToStar(BranchScheme *scheme, unum triangle_branches[3], ch
     free(old_arr);
 }
 
-void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_size) {
+unum findBiggestLoop(const BranchScheme *scheme, unum *loop_id_buffer) {
     unum nbranches = scheme->branches_count;
 
     decimal *direct_weights = ALLOC_ARR(decimal, nbranches);
@@ -383,50 +418,47 @@ void findBiggestLoop(BranchScheme *scheme, unum **branches_id_arr, unum *arr_siz
     SAFE_FREE(direct_weights);
     SAFE_FREE(indirect_weights);
 
-    (*branches_id_arr) = ALLOC_ARR(unum, nbranches);
-    memcpy(*branches_id_arr, src, nbranches * sizeof(unum));
+    memcpy(loop_id_buffer, src, nbranches * sizeof(unum));
     SAFE_FREE(branches_id_buffer);
 
-    SAFE_ASSIGN(arr_size, nbranches);
+    return nbranches;
 }
 
-void getNodesLocationInScheme(BranchScheme *scheme, Point **points_arr, unum *points_size) {}
-
-void resistorToLatex(char *buf, Point a, Point b, int id) {
-    sprintf(buf, "(%f,%f) to[%s, l=$R_%d$] (%f,%f)\n", (float)a.x, (float)a.y, "american resistor", id, (float)b.x,
+void resistorToLatex(char *buf, Point a, Point b, const char *label) {
+    sprintf(buf, "(%f,%f) to[%s, l=$R_{%s}$] (%f,%f)\n", (float)a.x, (float)a.y, LATEX_RESISTOR, label, (float)b.x,
             (float)b.y);
 }
 
-void voltageSourceToLatex(char *buf, Point a, Point b, int id) {
-    sprintf(buf, "(%f,%f) to[%s, l=$E_%d$] (%f,%f)\n", (float)b.x, (float)b.y, "american voltage source", id,
-            (float)a.x, (float)a.y);
+void voltageSourceToLatex(char *buf, Point a, Point b, const char *label) {
+    sprintf(buf, "(%f,%f) to[%s, l=$E_{%s}$] (%f,%f)\n", (float)b.x, (float)b.y, LATEX_VOLTAGE_SRC, label, (float)a.x,
+            (float)a.y);
 }
 
-void ampertageSourceToLatex(char *buf, Point a, Point b, int id) {
-    sprintf(buf, "(%f,%f) to[%s, l=$I_%d$] (%f,%f)\n", (float)a.x, (float)a.y, "american current source", id,
-            (float)b.x, (float)b.y);
+void ampertageSourceToLatex(char *buf, Point a, Point b, const char *label) {
+    sprintf(buf, "(%f,%f) to[%s, l=$J_{%s}$] (%f,%f)\n", (float)a.x, (float)a.y, LATEX_CURRENT_SRC, label, (float)b.x,
+            (float)b.y);
 }
 
-void branchValuesToLatex(Branch *branch, int id, char *dst) {
+void branchValuesToLatex(const Branch *branch, char *dst) {
     char buf[0x80];
     byte volt = fabs(branch->voltage) > EPSILON;
     byte amp = fabs(branch->ampertage) > EPSILON;
     byte res = fabs(branch->resistance) > EPSILON;
     if (res) {
-        sprintf(buf, "$R_%d=%.0f$\n\n", id, branch->resistance);
+        sprintf(buf, "$R_{%s}=%.3f$\n\n", branch->name, branch->resistance);
         strcat(dst, buf);
     }
     if (volt) {
-        sprintf(buf, "$E_%d=%.0f$\n\n", id, branch->voltage);
+        sprintf(buf, "$E_{%s}=%.3f$\n\n", branch->name, branch->voltage);
         strcat(dst, buf);
     }
     if (amp) {
-        sprintf(buf, "$I_%d=%.0f$\n\n", id, branch->ampertage);
+        sprintf(buf, "$J_{%s}=%.3f$\n\n", branch->name, branch->ampertage);
         strcat(dst, buf);
     }
 }
 
-void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, char *dst) {
+void branchToLatex(const Branch *branch, Point a, Point b, decimal offset, char *dst) {
     char buf[0x80];
     memset(buf, 0, 0x80);
 
@@ -455,10 +487,10 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
     if (fabs(offset) > EPSILON) {
         sprintf(buf, "(%f,%f) to ", (float)a.x, (float)a.y);
         strcat(dst, buf);
-        a.x += l.x * 0.15 + norm.x * offset * 0.15;
-        a.y += l.y * 0.15 + norm.y * offset * 0.15;
-        b.x += -l.x * 0.15 + norm.x * offset * 0.15;
-        b.y += -l.y * 0.15 + norm.y * offset * 0.15;
+        a.x += l.x * 0.05 + norm.x * offset * 0.25;
+        a.y += l.y * 0.05 + norm.y * offset * 0.25;
+        b.x += -l.x * 0.05 + norm.x * offset * 0.25;
+        b.y += -l.y * 0.05 + norm.y * offset * 0.25;
         buf[0] = 0;
         sprintf(buf, "(%f,%f)\n", (float)a.x, (float)a.y);
         strcat(dst, buf);
@@ -466,29 +498,31 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
     }
 
     if (volt && res) {
+        Point c = a;
+        Point d = b;
+        if (reversed) {
+            c = b;
+            d = a;
+        }
         Point mid = a;
         mid.x += l.x * .5;
         mid.y += l.y * .5;
-        resistorToLatex(buf, a, mid, id);
+        resistorToLatex(buf, mid, c, branch->name);
         strcat(dst, buf);
         buf[0] = 0;
-        if (reversed) {
-            voltageSourceToLatex(buf, b, mid, id);
-        } else {
-            voltageSourceToLatex(buf, mid, b, id);
-        }
+        voltageSourceToLatex(buf, mid, d, branch->name);
         strcat(dst, buf);
         buf[0] = 0;
     } else if (volt) {
         if (reversed) {
-            voltageSourceToLatex(buf, b, a, id);
+            voltageSourceToLatex(buf, b, a, branch->name);
         } else {
-            voltageSourceToLatex(buf, a, b, id);
+            voltageSourceToLatex(buf, a, b, branch->name);
         }
         strcat(dst, buf);
         buf[0] = 0;
     } else if (res) {
-        resistorToLatex(buf, a, b, id);
+        resistorToLatex(buf, b, a, branch->name);
         strcat(dst, buf);
         buf[0] = 0;
     }
@@ -496,7 +530,10 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
         if (volt || res) {
             Point c = a;
             Point d = b;
-            decimal nk = 0.15;
+            decimal nk = -0.15;
+            if (volt && res) {
+                nk = -nk;
+            }
             decimal lk = 0.25;
             c.x += norm.x * nk + l.x * lk;
             c.y += norm.y * nk + l.y * lk;
@@ -507,9 +544,9 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
             strcat(dst, buf);
             buf[0] = 0;
             if (reversed) {
-                ampertageSourceToLatex(buf, d, c, id);
+                ampertageSourceToLatex(buf, d, c, branch->name);
             } else {
-                ampertageSourceToLatex(buf, c, d, id);
+                ampertageSourceToLatex(buf, c, d, branch->name);
             }
             strcat(dst, buf);
             buf[0] = 0;
@@ -518,9 +555,9 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
             buf[0] = 0;
         } else {
             if (reversed) {
-                ampertageSourceToLatex(buf, b, a, id);
+                ampertageSourceToLatex(buf, b, a, branch->name);
             } else {
-                ampertageSourceToLatex(buf, a, b, id);
+                ampertageSourceToLatex(buf, a, b, branch->name);
             }
         }
     }
@@ -532,7 +569,7 @@ void branchToLatex(Branch *branch, unum id, Point a, Point b, decimal offset, ch
     }
 }
 
-void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
+void schemeToLatex(const BranchScheme *scheme, char *str, decimal scale, unum *branches_loop, unum nbranches_loop) {
     unum nbranches = scheme->branches_count;
 
     unum *nodes_map;
@@ -548,13 +585,9 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
     Point *node_positions = ALLOC_ARR(Point, nnodes);
     ZERO_ARR(node_positions, Point, nnodes);
 
-    unum *branches_loop;
-    unum loop_size;
-    findBiggestLoop(scheme, &branches_loop, &loop_size);
-
 #ifdef TRACE
     puts("Biggest loop:");
-    for (unum i = 0; i < loop_size; ++i) {
+    for (unum i = 0; i < nbranches_loop; ++i) {
         printf("%d -> ", (int)branches_loop[i]);
     }
     printf("%d\n", (int)branches_loop[0]);
@@ -562,7 +595,7 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
 
     unum start_node = scheme->branches[branches_loop[0]].start_node;
     unum node = start_node;
-    decimal theta = 2 * M_PI / (decimal)loop_size;
+    decimal theta = 2 * M_PI / (decimal)nbranches_loop;
     decimal phi = theta * .5;
     unum i = 1;
     while (1) {
@@ -599,53 +632,52 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
 
         phi += theta;
         i++;
-        if (i >= loop_size) {
-            i -= loop_size;
+        if (i >= nbranches_loop) {
+            i -= nbranches_loop;
         }
     }
-    for (size_t i = 0; i < 0x10; ++i) {
-        byte calculated_all = 1;
-        for (unum i = 0; i < nnodes; ++i) {
-            if (calculated_nodes[i])
-                continue;
-            Point *point = node_positions + i;
-            point->x = 0;
-            point->y = 0;
-            calculated_nodes[i] = 1;
-            Branch **branches;
-            unum branches_count;
-            findSchemeBranchesByNode(scheme, nodes_map[i], &branches, &branches_count);
-            for (unum j = 0; j < branches_count; ++j) {
-                unum start_id = branches[j]->start_node;
-                unum end_id = branches[j]->end_node;
-                num other_id = -1;
-                if (start_id == nodes_map[i]) {
-                    other_id = end_id;
-                } else if (end_id == nodes_map[i]) {
-                    other_id = start_id;
-                }
-                assert(other_id != -1);
+    Point center;
+    center.x = center.y = scale * .5;
 
-                other_id = inv_map[other_id];
+    const int center_weight = 3;
 
-                Point other = node_positions[other_id];
-                if (!calculated_nodes[other_id]) {
-                    calculated_all = 0;
-                    calculated_nodes[i] = 0;
-                }
+    for (unum i = 0; i < nnodes; ++i) {
+        if (calculated_nodes[i])
+            continue;
+        Point *point = node_positions + i;
+        (*point) = center;
+        calculated_nodes[i] = 1;
+        Branch **branches;
+        unum branches_count;
+        findSchemeBranchesByNode(scheme, nodes_map[i], &branches, &branches_count);
 
-                point->x += other.x / branches_count;
-                point->y += other.y / branches_count;
+        point->x *= (decimal)(center_weight) / (branches_count + center_weight);
+        point->y *= (decimal)(center_weight) / (branches_count + center_weight);
+
+        for (unum j = 0; j < branches_count; ++j) {
+            unum start_id = branches[j]->start_node;
+            unum end_id = branches[j]->end_node;
+            num other_id = -1;
+            if (start_id == nodes_map[i]) {
+                other_id = end_id;
+            } else if (end_id == nodes_map[i]) {
+                other_id = start_id;
             }
+            assert(other_id != -1);
+
+            other_id = inv_map[other_id];
+
+            Point other = node_positions[other_id];
+
+            point->x += other.x / (branches_count + center_weight);
+            point->y += other.y / (branches_count + center_weight);
+        }
 
 #ifdef TRACE
-            printf("node %d: (%f, %f)\n", (int)nodes_map[i], (float)point->x, (float)point->y);
+        printf("node %d: (%f, %f)\n", (int)nodes_map[i], (float)point->x, (float)point->y);
 #endif
 
-            free(branches);
-        }
-        if (calculated_all)
-            break;
+        free(branches);
     }
 
     free(nodes_map);
@@ -675,16 +707,16 @@ void schemeToLatex(BranchScheme *scheme, char *str, decimal scale) {
         Point a = node_positions[j];
         Point b = node_positions[k];
 
-        branchToLatex(branch, i + 1, a, b, offset, buffer);
+        branchToLatex(branch, a, b, offset, buffer);
     }
     free(branch_map);
 
     sprintf(str, LATEX_CIRCUIT_TEMPL, buffer);
 }
 
-void schemeValuesToLatex(BranchScheme *scheme, char *doc) {
+void schemeValuesToLatex(const BranchScheme *scheme, char *doc) {
     for (size_t i = 0; i < scheme->branches_count; ++i) {
-        branchValuesToLatex(scheme->branches + i, i + 1, doc);
+        branchValuesToLatex(scheme->branches + i, doc);
     }
 }
 
@@ -693,7 +725,7 @@ void branchConvertAmpertageToVotage(Branch *branch) {
     branch->ampertage = 0;
 }
 
-void mergeBranches(Branch *merge_to, Branch *merge_from) {
+void mergeBranches(Branch *merge_to, const Branch *merge_from) {
     byte opposite = 0xff;
     unum merge_node;
     if (merge_to->end_node == merge_from->end_node) {
@@ -792,4 +824,18 @@ void simplifyScheme(BranchScheme *scheme, char *doc) {
         puts(buf);
     }
 #endif
+}
+
+unum hashBranch(const Branch *branch) {
+    unum l = strlen(branch->name);
+    unum *arr = (unum *)branch->name;
+    size_t n = l / sizeof(unum);
+    unum hash;
+    memcpy(&hash, arr, l - n * sizeof(num));
+    hash ^= l;
+
+    for (size_t i = 0; i < n; ++i) {
+        hash ^= arr[i];
+    }
+    return hash;
 }
