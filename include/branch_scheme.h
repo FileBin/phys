@@ -37,15 +37,25 @@ typedef struct Branch {
 } Branch;
 
 typedef struct BranchScheme {
-    struct BranchScheme *parent;
+    const struct BranchScheme *parent;
     Branch *branches;
     unum branches_count;
 } BranchScheme;
 
 typedef struct CalculatedScheme {
     decimal *branch_currencies;
-    BranchScheme *scheme;
+    const BranchScheme *scheme;
 } CalculatedScheme;
+
+typedef enum {
+    METHOD_NODE,
+    METHOD_LOOP,
+    METHOD_OVERLAY,
+} Method;
+
+CalculatedScheme calculateScheme(const BranchScheme *scheme, Method method, char *doc);
+
+void checkPowerBalance(const CalculatedScheme *scheme, char *doc);
 
 unum schemeNextNodeIndex(BranchScheme *scheme);
 void findSchemeBranchesByNode(const BranchScheme *scheme, unum node_id, Branch ***p_branches_ref_arr,
@@ -62,8 +72,6 @@ unum findBiggestLoop(const BranchScheme *scheme, unum *loop_id_buffer);
 void branchConvertAmpertageToVotage(Branch *branch);
 void mergeBranches(Branch *merge_to, const Branch *merge_from);
 unum hashBranch(const Branch *branch);
-
-CalculatedScheme *calculateSchemeCurencies(const BranchScheme *scheme);
 
 #ifdef __cplusplus
 }

@@ -4,12 +4,16 @@
 #include <string.h>
 #include <vecmath.h>
 
-Vector createVector(unum n) {
-    Vector v;
-    v.n = n;
-    v.data = ALLOC_ARR(decimal, n);
-    ZERO_ARR(v.data, decimal, n);
-    return v;
+void initVector(Vector *v, unum n) {
+    v->n = n;
+    v->data = ALLOC_ARR(decimal, n);
+    ZERO_ARR(v->data, decimal, n);
+}
+
+void initCopyVector(Vector *dst, const Vector *src) {
+    dst->n = src->n;
+    dst->data = ALLOC_ARR(decimal, src->n);
+    memcpy(dst->data, src->data, src->n * sizeof(decimal));
 }
 
 void resizeVector(Vector *vec, size_t new_size) {
@@ -35,4 +39,13 @@ decimal getVectorElement(Vector *vec, unum x) { return vec->data[x]; }
 void destroyVector(Vector *vec) {
     vec->n = 0;
     SAFE_FREE(vec->data);
+}
+
+void multiplyVectorByMatrix(Vector *dst, const Vector *src, SqMatrix *matrix) {
+    unum n = src->n;
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            dst->data[i] = src->data[j] * getSqMatrixElement(matrix, j, i);
+        }
+    }
 }

@@ -1,4 +1,3 @@
-
 #include "defines.h"
 #include <assert.h>
 #include <branch_scheme.h>

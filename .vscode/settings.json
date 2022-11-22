@@ -1,13 +1,13 @@
 {
   "editor.tabCompletion": "on",
-  "editor.formatOnSave": true,
   "cmake.debugConfig": {
-    "args": []
+    "args": ["if=\"./res/test.txt\"", "of=\"./res/latex.tex\""]
   },
   "C_Cpp.formatting": "Disabled",
   "C_Cpp.intelliSenseEngine": "Disabled",
   "clangd.checkUpdates": true,
   "clangd.onConfigChanged": "restart",
+
   "clangd.arguments": ["-compile-commands-dir=${workspaceFolder}"],
   "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
   "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",

@@ -17,9 +17,11 @@ typedef struct Vector {
     decimal *data;
 } Vector;
 
-Vector createVector(unum n);
+void initVector(Vector *vec, unum n);
+void initCopyVector(Vector *dst, const Vector *src);
+void resizeVector(Vector *vec, size_t new_size);
 
-void assignVector(Vector *dst, const Vector *src);
+void copyVector(Vector *dst, const Vector *src);
 
 void setVectorElement(Vector *vec, unum x, decimal new_value);
 
@@ -32,10 +34,9 @@ typedef struct SqMatrix {
     decimal *data;
 } SqMatrix;
 
-SqMatrix createSqMatrix(unum n);
-SqMatrix createCopyMatrix(const SqMatrix *src);
-
-SqMatrix createIdentitySqMatrix(unum n);
+void initSqMatrix(SqMatrix *mat, unum n);
+void initCopySqMatrix(SqMatrix *mat, const SqMatrix *src);
+void initIdentitySqMatrix(SqMatrix *mat, unum n);
 
 void resizeSqMatrix(SqMatrix *matrix, size_t new_size);
 void copySqMatrix(SqMatrix *dst, const SqMatrix *src);
@@ -50,6 +51,8 @@ decimal getDetermitator(const SqMatrix *matrix);
 decimal getCofactor(const SqMatrix *matrix, unum x, unum y);
 
 void destroySqMatrix(SqMatrix *matrix);
+
+void multiplyVectorByMatrix(Vector *vec, const Vector *src, SqMatrix *matrix);
 
 #ifdef __cplusplus
 }

@@ -3,20 +3,19 @@
 #include <string.h>
 #include <vecmath.h>
 
-SqMatrix createSqMatrix(unum n) {
-    SqMatrix matrix;
-    matrix.n = n;
-    matrix.data = ALLOC_ARR(decimal, n * n);
-    ZERO_ARR(matrix.data, decimal, n * n);
-    return matrix;
+#define MATRIX_ELEM(matrix, x, y) (matrix)->data[(x) + (y) * (matrix)->n]
+
+void initSqMatrix(SqMatrix *matrix, unum n) {
+    matrix->n = n;
+    matrix->data = ALLOC_ARR(decimal, n * n);
+    ZERO_ARR(matrix->data, decimal, n * n);
 }
 
-SqMatrix createIdentitySqMatrix(unum n) {
-    SqMatrix mat = createSqMatrix(n);
+void initIdentitySqMatrix(SqMatrix *matrix, unum n) {
+    initIdentitySqMatrix(matrix, n);
     for (size_t i = 0; i < n; ++i) {
-        setSqMatrixElement(&mat, i, i, 1);
+        MATRIX_ELEM(matrix, i, i) = 1;
     }
-    return mat;
 }
 
 void resizeSqMatrix(SqMatrix *matrix, size_t new_size) {
@@ -28,10 +27,9 @@ void resizeSqMatrix(SqMatrix *matrix, size_t new_size) {
     matrix->n = new_size;
 }
 
-SqMatrix createCopyMatrix(const SqMatrix *src) {
-    SqMatrix dst = createSqMatrix(src->n);
-    memcpy(dst.data, src->data, src->n * src->n * sizeof(decimal));
-    return dst;
+void initCopySqMatrix(SqMatrix *dst, const SqMatrix *src) {
+    initSqMatrix(dst, src->n);
+    memcpy(dst->data, src->data, src->n * src->n * sizeof(decimal));
 }
 
 void copySqMatrix(SqMatrix *dst, const SqMatrix *src) {
@@ -41,8 +39,6 @@ void copySqMatrix(SqMatrix *dst, const SqMatrix *src) {
     dst->n = src->n;
     memcpy(dst->data, src->data, src->n * src->n * sizeof(decimal));
 }
-
-#define MATRIX_ELEM(matrix, x, y) (matrix)->data[(x) + (y) * (matrix)->n]
 
 void setSqMatrixElement(SqMatrix *matrix, unum x, unum y, decimal new_value) { MATRIX_ELEM(matrix, x, y) = new_value; }
 
@@ -65,7 +61,8 @@ void invertMatrix(SqMatrix *matrix) {
         matrix->data[0] = 1 / matrix->data[0];
     } else {
         transposeMatrix(matrix);
-        SqMatrix copy = createCopyMatrix(matrix);
+        SqMatrix copy;
+        initCopySqMatrix(&copy, matrix);
 
         decimal det = 0;
         for (size_t i = 0; i < n; ++i) {
@@ -109,19 +106,20 @@ decimal getCofactor(const SqMatrix *matrix, unum x, unum y) {
     if (n == 2) {
         return MATRIX_ELEM(matrix, 1 - x, 1 - y);
     }
-    SqMatrix cofactor_matrix = createSqMatrix(n - 1);
+    SqMatrix cofactor_matrix;
+    initSqMatrix(&cofactor_matrix, n - 1);
     decimal *dst = cofactor_matrix.data;
     decimal *src = matrix->data;
     for (size_t i = 0; i < n; ++i) {
-        src = src + n;
-
-        if (i == y)
+        if (i == y) {
+            src = src + n;
             continue;
+        }
 
         unum s = x;
 
         if (s > 0)
-            memcpy(dst, src, s);
+            memcpy(dst, src, s * sizeof(decimal));
 
         s = n - x - 1;
 
@@ -129,9 +127,10 @@ decimal getCofactor(const SqMatrix *matrix, unum x, unum y) {
         src = src + x + 1;
 
         if (s > 0)
-            memcpy(dst, src, s);
+            memcpy(dst, src, s * sizeof(decimal));
 
-        dst = dst + (n - 1);
+        dst = dst + (n - 1 - x);
+        src = src + (n - 1 - x);
     }
     decimal det = getDetermitator(&cofactor_matrix);
     destroySqMatrix(&cofactor_matrix);

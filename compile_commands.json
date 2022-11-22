@@ -6,12 +6,27 @@
 },
 {
   "directory": "/home/filebin/GitRepo/phys/build/Debug",
-  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/branch_scheme.c.o -c /home/filebin/GitRepo/phys/src/branch_scheme.c",
-  "file": "/home/filebin/GitRepo/phys/src/branch_scheme.c"
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/main.c.o -c /home/filebin/GitRepo/phys/src/main.c",
+  "file": "/home/filebin/GitRepo/phys/src/main.c"
 },
 {
   "directory": "/home/filebin/GitRepo/phys/build/Debug",
-  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/main.c.o -c /home/filebin/GitRepo/phys/src/main.c",
-  "file": "/home/filebin/GitRepo/phys/src/main.c"
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/math/matrix.c.o -c /home/filebin/GitRepo/phys/src/math/matrix.c",
+  "file": "/home/filebin/GitRepo/phys/src/math/matrix.c"
+},
+{
+  "directory": "/home/filebin/GitRepo/phys/build/Debug",
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/math/vector.c.o -c /home/filebin/GitRepo/phys/src/math/vector.c",
+  "file": "/home/filebin/GitRepo/phys/src/math/vector.c"
+},
+{
+  "directory": "/home/filebin/GitRepo/phys/build/Debug",
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/scheme/branch_scheme.c.o -c /home/filebin/GitRepo/phys/src/scheme/branch_scheme.c",
+  "file": "/home/filebin/GitRepo/phys/src/scheme/branch_scheme.c"
+},
+{
+  "directory": "/home/filebin/GitRepo/phys/build/Debug",
+  "command": "/usr/bin/clang -I/home/filebin/GitRepo/phys/include -g -fPIE -Winvalid-pch -Xclang -include-pch -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h.pch -Xclang -include -Xclang /home/filebin/GitRepo/phys/build/Debug/CMakeFiles/ElectricityNets.dir/cmake_pch.h -o CMakeFiles/ElectricityNets.dir/src/scheme/calculation.c.o -c /home/filebin/GitRepo/phys/src/scheme/calculation.c",
+  "file": "/home/filebin/GitRepo/phys/src/scheme/calculation.c"
 }
 ]
