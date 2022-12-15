@@ -42,7 +42,7 @@ void copySqMatrix(SqMatrix *dst, const SqMatrix *src) {
 
 void setSqMatrixElement(SqMatrix *matrix, unum x, unum y, decimal new_value) { MATRIX_ELEM(matrix, x, y) = new_value; }
 
-decimal getSqMatrixElement(SqMatrix *matrix, unum x, unum y) { return MATRIX_ELEM(matrix, x, y); }
+decimal getSqMatrixElement(const SqMatrix *matrix, unum x, unum y) { return MATRIX_ELEM(matrix, x, y); }
 
 void transposeMatrix(SqMatrix *matrix) {
     unum n = matrix->n;
@@ -60,7 +60,7 @@ void invertMatrix(SqMatrix *matrix) {
     if (n == 1) {
         matrix->data[0] = 1 / matrix->data[0];
     } else {
-        transposeMatrix(matrix);
+        /*transposeMatrix(matrix);
         SqMatrix copy;
         initCopySqMatrix(&copy, matrix);
 
@@ -80,7 +80,33 @@ void invertMatrix(SqMatrix *matrix) {
                 MATRIX_ELEM(matrix, j, i) = getCofactor(&copy, j, i) / det;
             }
         }
-        destroySqMatrix(&copy);
+        destroySqMatrix(&copy);*/
+
+        Vector *vectors = ALLOC_ARR(Vector, n);
+        for (size_t i = 0; i < n; ++i) {
+            initVector(vectors + i, n * 2);
+            memcpy(vectors[i].data, matrix->data + n * i, n * sizeof(decimal));
+            vectors[i].data[n + i] = 1;
+        }
+        Vector tmp;
+        initVector(&tmp, n * 2);
+        for (size_t i = 0; i < n; ++i) {
+            divideVectorByValue(vectors + i, vectors + i, vectors[i].data[i]);
+            for (size_t j = 0; j < i; ++j) {
+                multiplyVectorByValue(&tmp, vectors + i, vectors[j].data[i]);
+                substractVectors(vectors + j, vectors + j, &tmp);
+            }
+            for (size_t j = i + 1; j < n; ++j) {
+                multiplyVectorByValue(&tmp, vectors + i, vectors[j].data[i]);
+                substractVectors(vectors + j, vectors + j, &tmp);
+            }
+        }
+
+        destroyVector(&tmp);
+
+        for (size_t i = 0; i < n; ++i) {
+            memcpy(matrix->data + n * i, vectors[i].data + n, n * sizeof(decimal));
+        }
     }
 }
 
@@ -140,4 +166,16 @@ decimal getCofactor(const SqMatrix *matrix, unum x, unum y) {
 void destroySqMatrix(SqMatrix *matrix) {
     matrix->n = 0;
     SAFE_FREE(matrix->data);
+}
+
+void multiplyMatrixes(SqMatrix *dst, const SqMatrix *a, const SqMatrix *b) {
+    unum n = dst->n;
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            decimal *elem = &MATRIX_ELEM(dst, j, i);
+            for (size_t k = 0; k < n; ++k) {
+                (*elem) += MATRIX_ELEM(a, k, i) * MATRIX_ELEM(b, j, k);
+            }
+        }
+    }
 }

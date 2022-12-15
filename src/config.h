@@ -27,7 +27,7 @@
     "\\end{document}\n\n"
 
 #define LATEX_CIRCUIT_TEMPL                                                                                            \
-    "\\begin{circuitikz} \\draw\n"                                                                                     \
+    "\\begin{circuitikz}"                                                                                              \
     "%s"                                                                                                               \
     ";\n"                                                                                                              \
     "\\end{circuitikz}\n\n"

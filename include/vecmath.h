@@ -21,6 +21,11 @@ void initVector(Vector *vec, unum n);
 void initCopyVector(Vector *dst, const Vector *src);
 void resizeVector(Vector *vec, size_t new_size);
 
+void addVectors(Vector *dst, const Vector *a, const Vector *b);
+void substractVectors(Vector *dst, const Vector *a, const Vector *b);
+void multiplyVectorByValue(Vector *dst, const Vector *a, decimal b);
+void divideVectorByValue(Vector *dst, const Vector *a, decimal b);
+
 void copyVector(Vector *dst, const Vector *src);
 
 void setVectorElement(Vector *vec, unum x, decimal new_value);
@@ -42,7 +47,7 @@ void resizeSqMatrix(SqMatrix *matrix, size_t new_size);
 void copySqMatrix(SqMatrix *dst, const SqMatrix *src);
 
 void setSqMatrixElement(SqMatrix *matrix, unum x, unum y, decimal new_value);
-decimal getSqMatrixElement(SqMatrix *matrix, unum x, unum y);
+decimal getSqMatrixElement(const SqMatrix *matrix, unum x, unum y);
 
 void invertMatrix(SqMatrix *matrix);
 void transposeMatrix(SqMatrix *matrix);
@@ -52,7 +57,8 @@ decimal getCofactor(const SqMatrix *matrix, unum x, unum y);
 
 void destroySqMatrix(SqMatrix *matrix);
 
-void multiplyVectorByMatrix(Vector *vec, const Vector *src, SqMatrix *matrix);
+void multiplyVectorByMatrix(Vector *vec, const SqMatrix *a, const Vector *b);
+void multiplyMatrixes(SqMatrix *dst, const SqMatrix *a, const SqMatrix *b);
 
 #ifdef __cplusplus
 }

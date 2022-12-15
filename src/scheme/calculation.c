@@ -68,7 +68,7 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
                 }
                 continue;
             }
-            setSqMatrixElement(&matrix, inv_map[end_id], i - 1, -1 / b->resistance);
+            setSqMatrixElement(&matrix, inv_map[end_id] - 1, i - 1, -1 / b->resistance);
         }
 
         setVectorElement(&b, i - 1, bi);
@@ -78,22 +78,34 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
         free(branch_ids);
     }
 
-    Vector potentials;
-    initVector(&potentials, n_equasions);
+    Vector X;
+    initVector(&X, n_equasions);
 
 #ifdef TRACE
-    puts("matrix:");
-    for (size_t i = 0; i < n_equasions; ++i) {
-        for (size_t j = 0; j < n_equasions; ++j) {
-            printf("%.6f ", getSqMatrixElement(&matrix, j, i));
-        }
-        puts(";");
-    }
+    SqMatrix not_inverted;
+    initCopySqMatrix(&not_inverted, &matrix);
 #endif
-
     invertMatrix(&matrix);
 
 #ifdef TRACE
+    SqMatrix ident;
+    initSqMatrix(&ident, not_inverted.n);
+#endif
+
+#ifdef TRACE
+    puts("vector:");
+    for (size_t j = 0; j < n_equasions; ++j) {
+        printf("%.6f ", b.data[j]);
+    }
+    puts(";");
+
+    puts("matrix:");
+    for (size_t i = 0; i < n_equasions; ++i) {
+        for (size_t j = 0; j < n_equasions; ++j) {
+            printf("%.6f ", getSqMatrixElement(&not_inverted, j, i));
+        }
+        puts(";");
+    }
     puts("inv matrix:");
     for (size_t i = 0; i < n_equasions; ++i) {
         for (size_t j = 0; j < n_equasions; ++j) {
@@ -101,9 +113,38 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
         }
         puts(";");
     }
+    multiplyMatrixes(&ident, &matrix, &not_inverted);
+    puts("mutiply check matrix:");
+    for (size_t i = 0; i < n_equasions; ++i) {
+        for (size_t j = 0; j < n_equasions; ++j) {
+            printf("%.6f ", getSqMatrixElement(&ident, j, i));
+        }
+        puts(";");
+    }
+    destroySqMatrix(&not_inverted);
+    destroySqMatrix(&ident);
 #endif
 
-    multiplyVectorByMatrix(&potentials, &b, &matrix);
+    multiplyVectorByMatrix(&X, &matrix, &b);
+
+    decimal *potentials = ALLOC_ARR(decimal, nnodes);
+    potentials[0] = 0;
+
+    for (size_t i = 1; i < nnodes; ++i) {
+        potentials[i] = X.data[i - 1];
+    }
+
+    destroyVector(&b);
+    destroyVector(&X);
+    destroySqMatrix(&matrix);
+
+#ifdef TRACE
+    puts("potentials:");
+    for (size_t i = 0; i < nnodes; ++i) {
+        printf("%d %.6f\n", nodes_map[i], potentials[i]);
+    }
+    puts("");
+#endif
 
     CalculatedScheme calc_expanded;
     calc_expanded.branch_currencies = ALLOC_ARR(decimal, scheme->branches_count);
@@ -141,6 +182,7 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
                     } else if (o_end_idx == (*founded_idx)) {
                         (*p_idx) = o_start_idx;
                     }
+                    b = other;
                     break;
                 }
             }
@@ -149,7 +191,7 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
         if (end_idx < 0 || start_idx < 0)
             continue;
 
-        decimal u = potentials.data[end_idx] - potentials.data[start_idx];
+        decimal u = potentials[start_idx] - potentials[end_idx];
         calc_expanded.branch_currencies[i] = (b->voltage + u) / b->resistance + b->ampertage;
 
         calculated[i] = true;
@@ -163,6 +205,8 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
 
 #endif
     }
+
+    free(potentials);
 
     for (size_t i = 0; i < scheme->branches_count; ++i) {
         if (calculated[i])
@@ -188,7 +232,7 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
                 break;
             }
 
-            Branch *other = scheme->branches + branches_ids[idx];
+            Branch *other = scheme->branches + idx;
             bool inverted = other->end_node != b->start_node;
             (*I) += (inverted ? -1 : 1) * calc_expanded.branch_currencies[idx];
         }
@@ -221,7 +265,7 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
             }
 
             Branch *other = scheme->branches + branches_ids[idx];
-            bool inverted = other->end_node != b->start_node;
+            bool inverted = other->start_node != b->end_node;
             (*I) -= (inverted ? -1 : 1) * calc_expanded.branch_currencies[idx];
         }
 
@@ -239,10 +283,6 @@ CalculatedScheme nodeMethodImpl(const BranchScheme *scheme, char *doc) {
 #endif
     }
     free(calculated);
-
-    destroyVector(&b);
-    destroyVector(&potentials);
-    destroySqMatrix(&matrix);
     free(nodes_map);
 
     return calc_expanded;
@@ -304,7 +344,7 @@ void checkPowerBalance(const CalculatedScheme *calc, char *doc) {
         }
 
         decimal P_dst_i = I * I * b->resistance;
-        if (fabs(P_src_i) > EPSILON) {
+        if (fabs(P_dst_i) > EPSILON) {
             sprintf(buf, "%s%.3f", P_dst_i < 0 ? "" : "+", P_dst_i);
             strcat(buffer_dst, buf);
 
@@ -319,7 +359,7 @@ void checkPowerBalance(const CalculatedScheme *calc, char *doc) {
 
     sprintf(buf, "=%.3f$", P_src);
     strcat(buffer_src, buf);
-    sprintf(buf, "=%.3f$", P_src);
+    sprintf(buf, "=%.3f$", P_dst);
     strcat(buffer_dst, buf);
 
     buffer_dst_f[strlen(buffer_dst_f) - 1] = '=';

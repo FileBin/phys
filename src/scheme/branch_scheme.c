@@ -569,6 +569,8 @@ void branchToLatex(const Branch *branch, Point a, Point b, decimal offset, char 
 }
 
 void schemeToLatex(const BranchScheme *scheme, char *str, decimal scale, unum *branches_loop, unum nbranches_loop) {
+    char buffer[0x1000];
+    buffer[0] = 0;
     unum nbranches = scheme->branches_count;
 
     unum *nodes_map;
@@ -583,14 +585,6 @@ void schemeToLatex(const BranchScheme *scheme, char *str, decimal scale, unum *b
     ZERO_ARR(calculated_nodes, byte, nnodes);
     Point *node_positions = ALLOC_ARR(Point, nnodes);
     ZERO_ARR(node_positions, Point, nnodes);
-
-#ifdef TRACE
-    puts("Biggest loop:");
-    for (unum i = 0; i < nbranches_loop; ++i) {
-        printf("%d -> ", (int)branches_loop[i]);
-    }
-    printf("%d\n", (int)branches_loop[0]);
-#endif
 
     unum start_node = scheme->branches[branches_loop[0]].start_node;
     unum node = start_node;
@@ -617,6 +611,12 @@ void schemeToLatex(const BranchScheme *scheme, char *str, decimal scale, unum *b
 #ifdef TRACE
         printf("node %d: (%f, %f)\n", (int)node, (float)p.x, (float)p.y);
 #endif
+
+        char buf[0x200];
+        sprintf(buf, "\\node [draw, fill, circle, label={[fill=white]left:$%d$}] at (%f,%f) {};\n", (int)node,
+                (float)p.x, (float)p.y);
+
+        strcat(buffer, buf);
 
         node_positions[inv_map[node]] = p;
         calculated_nodes[inv_map[node]] = 1;
@@ -675,14 +675,18 @@ void schemeToLatex(const BranchScheme *scheme, char *str, decimal scale, unum *b
 #ifdef TRACE
         printf("node %d: (%f, %f)\n", (int)nodes_map[i], (float)point->x, (float)point->y);
 #endif
+        char buf[0x200];
+        sprintf(buf, "\\node [draw, fill, circle, label={[fill=white]left:$%d$}] at (%f,%f) {};\n", (int)nodes_map[i],
+                (float)point->x, (float)point->y);
+
+        strcat(buffer, buf);
 
         free(branches);
     }
 
-    free(nodes_map);
+    strcat(buffer, "\\draw\n");
 
-    char buffer[0x1000];
-    buffer[0] = 0;
+    free(nodes_map);
 
     byte *branch_map = ALLOC_ARR(byte, nnodes * nnodes);
     ZERO_ARR(branch_map, byte, nnodes * nnodes);

@@ -41,11 +41,40 @@ void destroyVector(Vector *vec) {
     SAFE_FREE(vec->data);
 }
 
-void multiplyVectorByMatrix(Vector *dst, const Vector *src, SqMatrix *matrix) {
-    unum n = src->n;
+void addVectors(Vector *dst, const Vector *a, const Vector *b) {
+    unum n = dst->n;
     for (size_t i = 0; i < n; ++i) {
+        dst->data[i] = a->data[i] + b->data[i];
+    }
+}
+
+void substractVectors(Vector *dst, const Vector *a, const Vector *b) {
+    unum n = dst->n;
+    for (size_t i = 0; i < n; ++i) {
+        dst->data[i] = a->data[i] - b->data[i];
+    }
+}
+
+void multiplyVectorByValue(Vector *dst, const Vector *a, decimal b) {
+    unum n = dst->n;
+    for (size_t i = 0; i < n; ++i) {
+        dst->data[i] = a->data[i] * b;
+    }
+}
+
+void divideVectorByValue(Vector *dst, const Vector *a, decimal b) {
+    unum n = dst->n;
+    for (size_t i = 0; i < n; ++i) {
+        dst->data[i] = a->data[i] / b;
+    }
+}
+
+void multiplyVectorByMatrix(Vector *dst, const SqMatrix *a, const Vector *b) {
+    unum n = dst->n;
+    for (size_t i = 0; i < n; ++i) {
+        dst->data[i] = 0;
         for (size_t j = 0; j < n; ++j) {
-            dst->data[i] = src->data[j] * getSqMatrixElement(matrix, j, i);
+            dst->data[i] += b->data[j] * getSqMatrixElement(a, j, i);
         }
     }
 }

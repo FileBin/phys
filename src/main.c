@@ -14,12 +14,12 @@ typedef struct Args {
 
 int main(int argc, char *argv[]) {
     char doc[0x2000];
-    char buffer[0x500];
+    char buffer[0x1000];
     unum triangle_branches[3];
 
     Args args;
     args.in_file = stdin;
-    args.out_file = 0;
+    args.out_file = stdout;
     for (size_t i = 1; i < argc; ++i) {
         char *arg = argv[i];
         char buf[0x80];
@@ -84,12 +84,8 @@ int main(int argc, char *argv[]) {
     strcat(doc, "\n\\newpage\n\n");
     puts("Input branches to convert to trinagle:");
 
-    printf("doc templ:\n%s", doc);
-
     fscanf(args.in_file, "%d %d %d", (int *)&triangle_branches[0], (int *)&triangle_branches[1],
            (int *)&triangle_branches[2]);
-
-    printf("doc templ:\n%s", doc);
 
     transformTriangleToStar(&scheme, triangle_branches, buffer);
 
@@ -135,9 +131,6 @@ int main(int argc, char *argv[]) {
     buffer[0] = 0;
 
     strcat(doc, "\n\\newpage\n\n");
-
-    puts("\nLatex doc:");
-    printf(LATEX_DOC_TEMPL, doc);
 
     if (args.out_file)
         fprintf(args.out_file, LATEX_DOC_TEMPL, doc);

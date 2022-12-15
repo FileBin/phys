@@ -1,7 +1,7 @@
 {
   "editor.tabCompletion": "on",
   "cmake.debugConfig": {
-    "args": ["if=\"./res/test.txt\"", "of=\"./res/latex.tex\""]
+    "args": ["if=\"./res/test6.txt\"", "of=\"./res/latex.tex\""]
   },
   "C_Cpp.formatting": "Disabled",
   "C_Cpp.intelliSenseEngine": "Disabled",
